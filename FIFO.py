@@ -1,262 +1,293 @@
 from collections import deque
 
-# CORE FUNCTIONS - ALGORITHM LOGIC
-def fifo_page_replacement(pages, frame_size):
-    """
-    Simulates the FIFO (First-In, First-Out) page replacement algorithm
+def is_in_array(arr, value):
+    """Check if a value is in an array"""
+    return value in arr
+
+def print_table_header(page_count):
+    """Print table header"""
+    print("\n" + "+------+" + "-------+" * page_count + "--------+")
+    print("| Time |", end="")
+    for i in range(page_count):
+        print(f" Frame {i+1} |", end="")
+    print(" Page  |")
     
-    Parameters:
-    ----------
-    pages : list
-        List of page references
-    frame_size : int
-        Number of page frames in memory
-        
-    Returns:
-    -------
-    tuple: (total_page_faults, history_state, notes)
-    """
-    frames = deque()  # Queue to store pages in memory
-    page_faults = 0
-    history = []  # Store state history
-    notes = []    # Store step notes
+    print("|      |", end="")
+    for i in range(page_count):
+        print("       |", end="")
+    print(" Fault |")
     
-    for i, page in enumerate(pages):
-        note = ""
-        
-        # Check for page fault
-        if page not in frames:
-            page_faults += 1
-            
-            # If memory is full, remove oldest page
-            if len(frames) == frame_size:
-                removed = frames.popleft()
-                note = f"Replace page {removed}"
+    print("+------+" + "-------+" * page_count + "--------+")
+
+def print_table_row(time, total_page, page_count, row, page_fault):
+    """Print one row of the table"""
+    print(f"| {time:4d} |", end="")
+    
+    for j in range(page_count):
+        if total_page[j][row] == -1:
+            print(f" {'-':6} |", end="")
+        else:
+            print(f" {total_page[j][row]:6d} |", end="")
+    
+    if page_fault == 1:
+        print(f" {'Yes':5}  |", end="")
+    else:
+        print(f" {'No':5}  |", end="")
+    print()
+
+def main():
+    print("========================================")
+    print("        FIFO PAGE REPLACEMENT ALGORITHM")
+    print("========================================\n")
+    
+    # Input number of page frames
+    while True:
+        try:
+            page_count = int(input("Enter number of page frames (max 10): "))
+            if 1 <= page_count <= 10:
+                break
             else:
-                note = "Add to empty frame"
+                print("Please enter a number from 1 to 10!")
+        except ValueError:
+            print("Please enter an integer!")
+    
+    # Input number of references
+    while True:
+        try:
+            n = int(input("Enter number of references (max 20): "))
+            if 1 <= n <= 20:
+                break
+            else:
+                print("Please enter a number from 1 to 20!")
+        except ValueError:
+            print("Please enter an integer!")
+    
+    # Input reference sequence - FIXED ERROR HERE
+    ref = []
+    print(f"\nEnter reference sequence ({n} numbers, separated by space)")
+    print("Example: 1 3 0 6 2 0 1 3")
+    print("NOTE: Only enter NUMBERS, do not use commas ',' or brackets '[]'")
+    
+    while True:
+        try:
+            input_str = input("Enter: ").strip()
+            
+            if not input_str:
+                print("Cannot be empty! Enter again: ", end="")
+                continue
+            
+            # Check if there are non-numeric characters
+            # Allow numbers, spaces, and minus sign (for negative numbers)
+            allowed_chars = set('0123456789- ')
+            if not all(c in allowed_chars for c in input_str):
+                print("ERROR: Only enter NUMBERS and SPACES! Enter again: ", end="")
+                continue
+            
+            # Split the string
+            ref_input = input_str.split()
+            
+            # Check quantity
+            if len(ref_input) != n:
+                print(f"ERROR: Need to enter EXACTLY {n} numbers! You entered {len(ref_input)} numbers. Enter again: ", end="")
+                continue
+            
+            # Convert to integers
+            ref = []
+            valid_input = True
+            
+            for num_str in ref_input:
+                try:
+                    num = int(num_str)
+                    ref.append(num)
+                except ValueError:
+                    print(f"ERROR: '{num_str}' is not an integer! Enter again: ", end="")
+                    valid_input = False
+                    break
+            
+            if valid_input:
+                break
+                
+        except Exception as e:
+            print(f"ERROR: {e}. Enter again: ", end="")
+    
+    # Initialize arrays
+    pre_array = [-1] * page_count  # -1 represents empty frame
+    page_fault = [0] * n
+    total_page = [[-1 for _ in range(n)] for _ in range(page_count)]
+    
+    number_page_fault = 0
+    current_page = 0
+    
+    print("\n========================================")
+    print("           EXECUTION PROCESS")
+    print("========================================")
+    
+    # Main loop processing each reference
+    for i in range(n):
+        print(f"\n--- Time {i+1}: Reference to page {ref[i]} ---")
+        
+        # Check if page is already in memory
+        if is_in_array(pre_array, ref[i]):
+            # Page is already in memory
+            page_fault[i] = 0
+            print(f"Page {ref[i]} is already in memory. No page fault.")
+        else:
+            # Page is not in memory - page fault occurs
+            number_page_fault += 1
+            page_fault[i] = 1
+            
+            print(f"Page fault! Page {ref[i]} is not in memory.")
+            
+            # Check if memory is full
+            if current_page == page_count:
+                current_page = 0  # Return to beginning (FIFO)
+                print(f"Memory is full. Replace page at frame {current_page + 1}.")
+            else:
+                print(f"Empty frame available. Add to frame {current_page + 1}.")
             
             # Add new page to memory
-            frames.append(page)
-            fault = True
+            pre_array[current_page] = ref[i]
+            
+            # Increment current_page for next time
+            current_page = (current_page + 1) % page_count
+        
+        # Update status table
+        if i == 0:
+            # First time point
+            for j in range(page_count):
+                total_page[j][i] = pre_array[j]
         else:
-            note = "Page already in memory"
-            fault = False
+            # Copy from previous state
+            for j in range(page_count):
+                total_page[j][i] = total_page[j][i-1]
+            
+            # Update with latest state
+            for j in range(page_count):
+                if pre_array[j] != -1:
+                    total_page[j][i] = pre_array[j]
         
-        # Save current state
-        history.append(list(frames))
-        notes.append((page, fault, note))
-    
-    return page_faults, history, notes
-
-# DISPLAY FUNCTIONS
-def display_step_by_step(pages, frame_size, history, notes):
-    """Display each step of the algorithm execution"""
-    print("\nStep | Page Ref | Memory State               | Page Fault | Note")
-    print("-" * 80)
-    
-    for i in range(len(pages)):
-        page, fault, note = notes[i]
-        frames_state = history[i]
-        
-        # Display memory state
-        display_frames = []
-        for j in range(frame_size):
-            if j < len(frames_state):
-                display_frames.append(f"[{frames_state[j]}]")
+        # Print current state
+        print("Current memory state: ", end="")
+        for j in range(page_count):
+            if pre_array[j] == -1:
+                print("[ ] ", end="")
             else:
-                display_frames.append("[ ]")
-        
-        frames_str = " ".join(display_frames)
-        fault_str = "YES" if fault else "NO"
-        
-        print(f"{i+1:4d} | {page:8d} | {frames_str:25s} | {fault_str:10s} | {note}")
-
-
-def display_summary(pages, page_faults):
-    """Display summary of results"""
-    n = len(pages)
-    fault_rate = (page_faults / n) * 100 if n > 0 else 0
+                print(f"[{pre_array[j]}] ", end="")
+        print()
     
-    print("-" * 80)
-    print(f"Total page faults: {page_faults}")
+    # Print detailed result table
+    print("\n========================================")
+    print("           DETAILED RESULT TABLE")
+    print("========================================")
+    
+    print_table_header(page_count)
+    
+    for i in range(n):
+        print_table_row(i + 1, total_page, page_count, i, page_fault[i])
+        
+        if i < n - 1:
+            print("+------+" + "-------+" * page_count + "--------+")
+    
+    print("+------+" + "-------+" * page_count + "--------+")
+    
+    # Summary results
+    print("\n========================================")
+    print("              SUMMARY RESULTS")
+    print("========================================")
+    
+    # Print reference sequence
+    print("Reference sequence:", " ".join(map(str, ref)))
+    
+    # Print positions where page faults occurred
+    fault_positions = [str(i+1) for i in range(n) if page_fault[i] == 1]
+    if fault_positions:
+        print("Page fault positions:", ", ".join(fault_positions))
+    else:
+        print("Page fault positions: None")
+    
+    # Print total number of page faults
+    print(f"Total number of page faults: {number_page_fault}")
+    
+    # Calculate page fault rate
+    fault_rate = (number_page_fault / n) * 100
     print(f"Page fault rate: {fault_rate:.2f}%")
     
-    print("\n" + "="*50)
-    print("STATISTICS")
-    print("="*50)
-    print(f"- Total accesses: {n}")
-    print(f"- Page faults: {page_faults}")
-    print(f"- Successful accesses: {n - page_faults}")
-    print(f"- Success rate: {100 - fault_rate:.2f}%")
+    # Display explanation
+    print("\n========================================")
+    print("                 NOTES")
+    print("========================================")
+    print("1. '-' indicates empty frame")
+    print("2. 'Yes' in Page Fault column: page fault occurred")
+    print("3. 'No' in Page Fault column: no page fault")
+    print("4. FIFO: First page in is first page out")
+    print("5. Memory state is updated after each reference")
 
-
-def display_results(pages, frame_size, page_faults, history, notes):
-    """Display detailed results"""
-    n = len(pages)
-    
-    print("\n" + "="*80)
-    print("FIFO PAGE REPLACEMENT ALGORITHM - RESULTS")
-    print("="*80)
-    
-    print(f"Number of frames: {frame_size}")
-    print(f"Reference string: {pages}")
-    print(f"Number of references: {n}")
-    
-    # Display step by step
-    display_step_by_step(pages, frame_size, history, notes)
-    
-    # Display summary
-    display_summary(pages, page_faults)
-
-# INPUT FUNCTIONS
-def get_frame_size_from_user():
-    """Get number of frames from user"""
-    while True:
-        try:
-            frame_size = int(input("Enter number of frames (1-10): "))
-            if 1 <= frame_size <= 10:
-                return frame_size
-            else:
-                print("Please enter a number between 1 and 10!")
-        except ValueError:
-            print("Please enter a valid number!")
-
-
-def get_pages_from_user():
-    """Get reference string from user"""
-    print("\nEnter page reference string (numbers separated by spaces):")
-    print("Example: 7 0 1 2 0 3 0 4 2 3 0 3")
-    
-    while True:
-        try:
-            input_str = input("Reference string: ")
-            pages = [int(x) for x in input_str.split()]
-            if len(pages) > 0:
-                return pages
-            else:
-                print("String cannot be empty!")
-        except ValueError:
-            print("Please enter only numbers!")
-
-
-def get_input_from_user():
-    """Get all input data from user"""
+def visualize_fifo_example():
+    """Function to demonstrate a specific example"""
     print("\n" + "="*60)
-    print("USER INPUT")
-    print("="*60)
-    
-    frame_size = get_frame_size_from_user()
-    pages = get_pages_from_user()
-    
-    return pages, frame_size
-
-
-# EXAMPLE AND EXPLANATION FUNCTIONS
-def explain_fifo_algorithm():
-    """Explain the FIFO algorithm"""
-    print("\n" + "="*80)
-    print("FIFO ALGORITHM EXPLANATION:")
-    print("="*80)
-    print("1. FIFO (First-In, First-Out): First page in is first page out")
-    print("2. Uses a queue to track the order of pages in memory")
-    print("3. When page replacement is needed:")
-    print("   - Remove the page at the front of the queue (oldest)")
-    print("   - Add new page to the back of the queue")
-    print("4. Page fault occurs when requested page is not in memory")
-    print("="*80)
-
-
-def explain_example_results(pages, page_faults):
-    """Explain example results"""
-    print("\n" + "="*80)
-    print("RESULTS EXPLANATION:")
-    print("="*80)
-    print(f"With reference string of {len(pages)} pages:")
-    print(f"- {page_faults} page faults occurred")
-    print(f"- Page fault rate is {(page_faults/len(pages))*100:.2f}%")
-    print("\nThis means:")
-    print(f"• {page_faults}/{len(pages)} accesses required loading from disk")
-    print(f"• {len(pages)-page_faults}/{len(pages)} accesses found page in RAM")
-    print(f"• Performance: {100-(page_faults/len(pages))*100:.2f}% fast accesses")
-
-
-def run_example():
-    """Run example demonstration"""
-    print("\n" + "="*80)
     print("EXAMPLE DEMONSTRATION: FIFO PAGE REPLACEMENT ALGORITHM")
-    print("="*80)
+    print("="*60)
     
     # Example data
-    pages = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3]
-    frame_size = 3
+    page_count = 3
+    ref = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3]
+    n = len(ref)
     
-    print(f"Number of frames: {frame_size}")
-    print(f"Reference string: {pages}")
-    print(f"Number of references: {len(pages)}")
+    print(f"Number of frames: {page_count}")
+    print(f"Reference sequence: {ref}")
+    print(f"Number of references: {n}")
+    print()
     
-    # Explain algorithm
-    explain_fifo_algorithm()
+    # Initialize
+    frames = [-1] * page_count
+    page_faults = 0
+    queue = []  # Queue to track entry order
     
-    # Run simulation
-    page_faults, history, notes = fifo_page_replacement(pages, frame_size)
+    print("Step | Reference |  Memory Frames | Page Fault | Note")
+    print("-" * 60)
     
-    # Display results
-    display_results(pages, frame_size, page_faults, history, notes)
-    
-    # Explain results
-    explain_example_results(pages, page_faults)
-
-
-# MAIN CONTROL FUNCTIONS
-def run_simulation_from_input():
-    """Run simulation with user input"""
-    pages, frame_size = get_input_from_user()
-    page_faults, history, notes = fifo_page_replacement(pages, frame_size)
-    display_results(pages, frame_size, page_faults, history, notes)
-
-
-def ask_to_continue():
-    """Ask user if they want to continue"""
-    cont = input("\nPress Enter to continue, or 'q' to quit: ")
-    return cont.lower() != 'q'
-
-
-def display_main_menu():
-    """Display main menu"""
-    print("\n" + "="*60)
-    print("FIFO PAGE REPLACEMENT ALGORITHM SIMULATOR")
-    print("="*60)
-    print("1. Enter data from keyboard and run simulation")
-    print("2. View example demonstration")
-    print("3. Exit program")
-    print("="*60)
-
-
-def handle_menu_choice(choice):
-    """Handle menu choice"""
-    if choice == "1":
-        run_simulation_from_input()
-        return ask_to_continue()
-    elif choice == "2":
-        run_example()
-        return ask_to_continue()
-    elif choice == "3":
-        print("Thank you for using the program!")
-        return False
-    else:
-        print("Invalid choice! Please enter 1, 2, or 3.")
-        return True
-
-
-def main_menu():
-    """Main program menu controller"""
-    while True:
-        display_main_menu()
-        choice = input("Enter your choice (1-3): ").strip()
+    for i, page in enumerate(ref):
+        fault = False
+        note = ""
         
-        if not handle_menu_choice(choice):
-            break
+        if page not in frames:
+            page_faults += 1
+            fault = True
+            
+            if -1 in frames:
+                # Empty frame available
+                empty_idx = frames.index(-1)
+                frames[empty_idx] = page
+                queue.append(page)
+                note = f"Add to frame {empty_idx + 1}"
+            else:
+                # Replace page
+                oldest = queue.pop(0)
+                idx = frames.index(oldest)
+                frames[idx] = page
+                queue.append(page)
+                note = f"Replace page {oldest} at frame {idx + 1}"
+        
+        # Display result
+        frames_display = " ".join([f"[{f}]" if f != -1 else "[ ]" for f in frames])
+        fault_display = "Yes" if fault else "No"
+        print(f"{i+1:4d} | {page:9d} | {frames_display:13s} | {fault_display:9s} | {note}")
+    
+    print("-" * 60)
+    print(f"Total number of page faults: {page_faults}")
+    print(f"Page fault rate: {(page_faults/n)*100:.2f}%")
 
-# ENTRY POINT
 if __name__ == "__main__":
-    main_menu()
+    print("Select mode:")
+    print("1. Run with keyboard input data")
+    print("2. View example demonstration")
+    print("3. Exit")
+    
+    choice = input("Enter your choice (1-3): ")
+    
+    if choice == "1":
+        main()
+    elif choice == "2":
+        visualize_fifo_example()
+    else:
+        print("Exit program")
