@@ -62,53 +62,20 @@ def main():
         except ValueError:
             print("Please enter an integer!")
     
-    # Input reference sequence - FIXED ERROR HERE
+    # Input reference sequence
     ref = []
-    print(f"\nEnter reference sequence ({n} numbers, separated by space)")
-    print("Example: 1 3 0 6 2 0 1 3")
-    print("NOTE: Only enter NUMBERS, do not use commas ',' or brackets '[]'")
+    print(f"Enter reference sequence ({n} numbers, separated by space): ", end="")
     
     while True:
         try:
-            input_str = input("Enter: ").strip()
-            
-            if not input_str:
-                print("Cannot be empty! Enter again: ", end="")
-                continue
-            
-            # Check if there are non-numeric characters
-            # Allow numbers, spaces, and minus sign (for negative numbers)
-            allowed_chars = set('0123456789- ')
-            if not all(c in allowed_chars for c in input_str):
-                print("ERROR: Only enter NUMBERS and SPACES! Enter again: ", end="")
-                continue
-            
-            # Split the string
-            ref_input = input_str.split()
-            
-            # Check quantity
-            if len(ref_input) != n:
-                print(f"ERROR: Need to enter EXACTLY {n} numbers! You entered {len(ref_input)} numbers. Enter again: ", end="")
-                continue
-            
-            # Convert to integers
-            ref = []
-            valid_input = True
-            
-            for num_str in ref_input:
-                try:
-                    num = int(num_str)
-                    ref.append(num)
-                except ValueError:
-                    print(f"ERROR: '{num_str}' is not an integer! Enter again: ", end="")
-                    valid_input = False
-                    break
-            
-            if valid_input:
+            ref_input = input().split()
+            if len(ref_input) == n:
+                ref = [int(x) for x in ref_input]
                 break
-                
-        except Exception as e:
-            print(f"ERROR: {e}. Enter again: ", end="")
+            else:
+                print(f"Please enter exactly {n} numbers! Enter again: ", end="")
+        except ValueError:
+            print("Please enter integers only! Enter again: ", end="")
     
     # Initialize arrays
     pre_array = [-1] * page_count  # -1 represents empty frame
